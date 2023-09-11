@@ -1,3 +1,3 @@
-module github.com/joeyz1729/geerpc
+module geerpc
 
 go 1.20
