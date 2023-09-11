@@ -8,10 +8,10 @@ import (
 )
 
 type methodType struct {
-	method    reflect.Method
-	ArgType   reflect.Type
-	ReplyType reflect.Type
-	numCalls  uint64
+	method    reflect.Method // 方法名称
+	ArgType   reflect.Type   // 参数
+	ReplyType reflect.Type   // 返回值
+	numCalls  uint64         // 调用次数
 }
 
 func (m *methodType) NumCalls() uint64 {
@@ -42,10 +42,10 @@ func (m *methodType) newReplyv() reflect.Value {
 }
 
 type service struct {
-	name   string
-	typ    reflect.Type
-	rcvr   reflect.Value
-	method map[string]*methodType
+	name   string                 // 服务名称
+	typ    reflect.Type           // 结构体类型
+	rcvr   reflect.Value          // receiver 实体本身
+	method map[string]*methodType // 所有符合的方法
 }
 
 func newService(rcvr interface{}) *service {
@@ -66,9 +66,11 @@ func (s *service) registerMethods() {
 		method := s.typ.Method(i)
 		mType := method.Type
 		if mType.NumIn() != 3 || mType.NumOut() != 1 {
+			// methodName, args, reply  error
 			continue
 		}
 		if mType.Out(0) != reflect.TypeOf((*error)(nil)).Elem() {
+			// return error
 			continue
 		}
 		argType, replyType := mType.In(1), mType.In(2)
@@ -84,8 +86,11 @@ func (s *service) registerMethods() {
 	}
 }
 
+// call 反射调用方法
 func (s *service) call(m *methodType, argv, replyv reflect.Value) error {
+	// 调用次数 + 1
 	atomic.AddUint64(&m.numCalls, 1)
+	// 反射调用时第一个参数是方法名称
 	f := m.method.Func
 	returnValues := f.Call([]reflect.Value{s.rcvr, argv, replyv})
 	if errInter := returnValues[0].Interface(); errInter != nil {
